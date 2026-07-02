@@ -37,6 +37,9 @@ if _PROJECT_ROOT not in sys.path:
 
 from gemini.gemini_service import generate_text, is_available, MODEL_NAME  # noqa: E402
 
+# Vercel function config (Hobby tier supports up to 60s).
+max_duration = 60
+
 
 def _json_response(status_code: int, body: dict) -> dict:
     """Build a Vercel-style response dict."""
@@ -52,52 +55,55 @@ def _json_response(status_code: int, body: dict) -> dict:
     }
 
 
-def handler(request):
-    """Vercel Python serverless function handler.
+def _read_body(request) -> dict:
+    """Extract JSON body from the Vercel request object (handles multiple
+    runtime formats robustly)."""
+    try:
+        # Vercel Python runtime: request.body may be bytes, str, or a callable
+        raw = getattr(request, "body", None)
+        if callable(raw):
+            raw = raw()
+        if isinstance(raw, (bytes, bytearray)):
+            raw = raw.decode("utf-8")
+        if not raw:
+            return {}
+        return json.loads(raw)
+    except Exception:
+        return {}
 
-    `request` is a Vercel request object exposing .method and .body.
-    """
-    method = getattr(request, "method", "GET")
 
-    # Handle CORS preflight
-    if method == "OPTIONS":
-        return _json_response(204, {})
+def GET(request):
+    """Health / availability check."""
+    return _json_response(
+        200,
+        {"available": is_available(), "model": MODEL_NAME},
+    )
 
-    if method == "GET":
-        # Health / availability check
+
+def POST(request):
+    """Generate text from a prompt via the Gemini service."""
+    body = _read_body(request)
+
+    prompt = body.get("prompt")
+    system_instruction = body.get("system_instruction")
+
+    if not prompt or not isinstance(prompt, str):
         return _json_response(
-            200,
-            {"available": is_available(), "model": MODEL_NAME},
+            400, {"text": None, "available": is_available()}
         )
 
-    if method == "POST":
-        # Parse the request body
-        try:
-            raw = request.body
-            if isinstance(raw, (bytes, bytearray)):
-                raw = raw.decode("utf-8")
-            body = json.loads(raw) if raw else {}
-        except Exception:
-            return _json_response(400, {"text": None, "available": is_available()})
+    # Every Gemini request goes through the single integration layer.
+    text = generate_text(
+        prompt=prompt,
+        system_instruction=system_instruction,
+    )
 
-        prompt = body.get("prompt")
-        system_instruction = body.get("system_instruction")
+    return _json_response(
+        200,
+        {"text": text, "available": is_available()},
+    )
 
-        if not prompt or not isinstance(prompt, str):
-            return _json_response(
-                400, {"text": None, "available": is_available()}
-            )
 
-        # Every Gemini request goes through the single integration layer.
-        text = generate_text(
-            prompt=prompt,
-            system_instruction=system_instruction,
-        )
-
-        return _json_response(
-            200,
-            {"text": text, "available": is_available()},
-        )
-
-    # Any other method
-    return _json_response(405, {"error": "method not allowed"})
+def OPTIONS(request):
+    """CORS preflight."""
+    return _json_response(204, {})
