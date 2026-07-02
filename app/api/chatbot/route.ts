@@ -258,22 +258,12 @@ Technologies: scikit-learn, NLTK, pandas, numpy, matplotlib, seaborn.
 `;
 
 /**
- * Gemini service endpoint.
- *
- * - Docker / HuggingFace Spaces: set `GEMINI_SERVICE_URL` to the Flask
- *   service URL (e.g. http://localhost:8000). The route calls
- *   `${GEMINI_SERVICE_URL}/generate`.
- * - Vercel: leave `GEMINI_SERVICE_URL` unset. The route calls `/api/gemini`
- *   (a Vercel Python serverless function that imports the same
- *   `gemini_service.py` module — the single integration layer).
- * - Local dev without the Flask service: leave `GEMINI_SERVICE_URL` unset;
- *   the call to `/api/gemini` will fail locally and the z-ai fallback kicks
- *   in, OR run the Flask service and set GEMINI_SERVICE_URL.
+ * URL of the Python Gemini service. Defaults to localhost:8000 which works
+ * for local development, Docker, and HuggingFace Spaces (the Python service
+ * runs inside the same container). Overridable via env for flexibility.
  */
-const GEMINI_SERVICE_URL = process.env.GEMINI_SERVICE_URL || "";
-const GEMINI_ENDPOINT = GEMINI_SERVICE_URL
-  ? `${GEMINI_SERVICE_URL}/generate`
-  : "/api/gemini";
+const GEMINI_SERVICE_URL =
+  process.env.GEMINI_SERVICE_URL || "http://localhost:8000";
 
 const FALLBACK_REPLY =
   "I'm sorry, but this information is not available.";
@@ -322,7 +312,7 @@ export async function POST(request: Request) {
 
     // Every AI request goes through the dedicated Python Gemini service.
     // This route never instantiates a Gemini client directly.
-    const serviceRes = await fetch(GEMINI_ENDPOINT, {
+    const serviceRes = await fetch(`${GEMINI_SERVICE_URL}/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -337,20 +327,7 @@ export async function POST(request: Request) {
     let geminiAvailable = false;
 
     if (serviceRes && serviceRes.ok) {
-      // The Vercel Python function returns {statusCode, headers, body} where
-      // body is a JSON string; the Flask service returns JSON directly.
-      // Handle both transparently.
-      const rawText = await serviceRes.text().catch(() => "");
-      let data: any = null;
-      try {
-        data = JSON.parse(rawText);
-        if (data && typeof data.body === "string") {
-          // Vercel function envelope — unwrap the inner body
-          data = JSON.parse(data.body);
-        }
-      } catch {
-        data = null;
-      }
+      const data = await serviceRes.json().catch(() => ({}));
       geminiAvailable = !!(data && data.available === true);
       if (data && typeof data.text === "string" && data.text.trim()) {
         geminiText = data.text.trim();
