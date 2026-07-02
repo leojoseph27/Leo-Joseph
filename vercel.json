@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "functions": {
+    "api/gemini.py": {
+      "memory": 512,
+      "maxDuration": 60
+    }
+  }
+}

@@ -5,6 +5,7 @@ import Typed from "typed.js";
 import { SplineScene } from "@/components/ui/splite";
 import { Card } from "@/components/ui/card";
 import { Spotlight } from "@/components/ui/spotlight";
+import { onRobotLoaded } from "@/components/ui/boot-sequence";
 
 const TYPED_STRINGS = [
   "AI Developer",
@@ -73,8 +74,11 @@ export function SplineSceneBasic() {
           <SplineScene
             scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
             className="w-full h-full"
+            onLoad={onRobotLoaded}
           />
         </div>
+        {/* if Spline never fires onLoad (e.g. blocked), fall back to ready
+            after a generous timeout so the loader never hangs forever */}
       </div>
     </Card>
   );

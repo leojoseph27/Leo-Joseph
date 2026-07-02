@@ -1,0 +1,6 @@
+# =============================================================================
+# Python dependencies for the Vercel Python serverless function (api/gemini.py).
+# Vercel reads this root-level requirements.txt to build Python functions.
+# =============================================================================
+# Official Google Gen AI Python SDK (NOT the deprecated google-generativeai).
+google-genai>=1.0.0

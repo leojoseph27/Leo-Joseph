@@ -172,18 +172,11 @@ export function NeuralNetworkLoader({ onDone }: { onDone?: () => void }) {
         startRef.current = ts; // reset timer for the welcome hold
       }
     } else if (phaseRef.current === "welcome") {
-      // hold welcome, then start fading
-      if (elapsed > WELCOME_HOLD) {
-        setFade(true);
-        phaseRef.current = "done";
-        startRef.current = ts;
-      }
-    } else if (phaseRef.current === "done") {
-      if (elapsed > FADE_OUT) {
-        if (rafRef.current) cancelAnimationFrame(rafRef.current);
-        onDone?.();
-        return;
-      }
+      // Hold the "Welcome." state with the network glowing. The boot
+      // sequence's overlay handles the actual fade-out (so the loader
+      // doesn't self-fade and cause a double-fade). We stay here until
+      // the component unmounts.
+      // (WELCOME_HOLD is kept for potential future use, but no transition.)
     }
 
     const prog = progressRef.current;

@@ -5,11 +5,9 @@
  * ===========
  *
  * Wraps the @splinetool/react-spline Spline viewer so it only renders on the
- * client AFTER hydration. The server and the client's first hydration render
- * both output the same fallback, which avoids React hydration mismatches
- * (the Spline lazy component otherwise SSRs a hidden <canvas> that differs
- * from the client's Suspense fallback). The real Spline scene loads on the
- * client once mounted.
+ * client AFTER hydration (avoids React hydration mismatches). Calls
+ * `onLoad()` once the Spline scene has finished loading, so the boot
+ * sequence knows when the robot is ready to be revealed.
  */
 
 import { Suspense, lazy, useEffect, useState } from "react";
@@ -19,6 +17,8 @@ const Spline = lazy(() => import("@splinetool/react-spline"));
 interface SplineSceneProps {
   scene: string;
   className?: string;
+  /** Called once the Spline scene has fully loaded. */
+  onLoad?: () => void;
 }
 
 function Fallback() {
@@ -29,7 +29,7 @@ function Fallback() {
   );
 }
 
-export function SplineScene({ scene, className }: SplineSceneProps) {
+export function SplineScene({ scene, className, onLoad }: SplineSceneProps) {
   // Don't render the lazy Spline during SSR or the first client render —
   // both output <Fallback /> so hydration matches exactly. After mount we
   // swap to the real (lazy-loaded) Spline viewer.
@@ -42,7 +42,7 @@ export function SplineScene({ scene, className }: SplineSceneProps) {
 
   return (
     <Suspense fallback={<Fallback />}>
-      <Spline scene={scene} className={className} />
+      <Spline scene={scene} className={className} onLoad={onLoad} />
     </Suspense>
   );
 }
