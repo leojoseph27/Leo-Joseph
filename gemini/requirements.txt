@@ -1,0 +1,10 @@
+# Gemini service dependencies
+# Official Google Gen AI Python SDK (NOT the deprecated google-generativeai)
+google-genai>=1.0.0
+
+# Web framework for the single HTTP integration layer
+Flask>=3.0.0
+flask-cors>=4.0.0
+
+# Production WSGI server (used in Docker / HuggingFace Spaces)
+gunicorn>=22.0.0

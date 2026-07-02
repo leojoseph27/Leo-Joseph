@@ -238,8 +238,21 @@ export default function Home() {
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                 </div>
                 <div className="pl-2">
+                  <span className="text-neutral-400 text-[1.01rem]">March 2026 – Ongoing</span>
+                  <h3 className="text-white font-semibold mt-1 text-[1.15rem]">Full Stack Developer – Al-Nassim Golden Group</h3>
+                  <p className="text-neutral-300 text-[1.01rem] mt-2">
+                    • Developing Al-Nassim&rsquo;s digital platform, including an e-commerce website, PIM system, and web applications for product and inventory management.<br />
+                    • Building an AI-powered product management system with barcode/ND scanning, product entry, Excel automation, image management, and Supabase integration.
+                  </p>
+                </div>
+              </div>
+              <div className="relative flex gap-4 border-l-2 border-purple-500 pl-5 ml-4 pb-8">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white absolute left-0 -translate-x-1/2 top-0">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                </div>
+                <div className="pl-2">
                   <span className="text-neutral-400 text-[1.01rem]">June 2025 – Jan 2026</span>
-                  <h3 className="text-white font-semibold mt-1 text-[1.15rem]">Full Stack Developer – QB Tech Solutions, Kerala</h3>
+                  <h3 className="text-white font-semibold mt-1 text-[1.15rem]">Full Stack Developer with AI &amp; Machine Learning Assistance – QB Tech Solutions, Kerala</h3>
                   <p className="text-neutral-300 text-[1.01rem] mt-2">
                     • Developed React-based web apps with a PostgreSQL backend and built an AI chatbot using Node.js.<br />
                     • Deployed the company website and handled web development, technical support, and system issue resolution.

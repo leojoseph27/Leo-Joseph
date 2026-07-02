@@ -1,1 +1,41 @@
+# dependencies
 node_modules
+/.pnp
+.pnp.js
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.venv/
+.python-version
+
+# env files (NEVER commit secrets)
+.env
+.env.local
+.env.*.local
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# os
+.DS_Store
+*.pem
+
+# misc
+.idea/
+.vscode/
+*.tsbuildinfo
+next-env.d.ts
