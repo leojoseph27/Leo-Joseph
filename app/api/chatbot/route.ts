@@ -23,8 +23,20 @@ import {
  *    instruction.
  */
 
-const GEMINI_SERVICE_URL =
-  process.env.GEMINI_SERVICE_URL || "http://localhost:8000";
+// ---------------------------------------------------------------------------
+// Gemini transport — two modes, auto-selected:
+//
+//   1. GEMINI_SERVICE_URL set  -> call the Python Flask service
+//      (local dev, Docker, HuggingFace Spaces: `gemini/app.py`).
+//   2. else, GOOGLE_API_KEY set -> call the Gemini REST API directly
+//      from this server route (Vercel: single deployment, no Python).
+//
+// Either way the key stays server-side; the browser never sees it.
+// ---------------------------------------------------------------------------
+
+const GEMINI_SERVICE_URL = process.env.GEMINI_SERVICE_URL || ""; // explicit = Python mode
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || "";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 
 // ---------------------------------------------------------------------------
 // Persona instructions
@@ -95,16 +107,86 @@ function getSession(id: string): Session {
   return s;
 }
 
-async function callGeminiService(
-  prompt: string,
-  systemInstruction: string,
-  history: Turn[] | null
-): Promise<{
+interface GeminiResult {
   ok: boolean;
   available: boolean;
   text: string | null;
   errorKind: string | null;
-}> {
+}
+
+/** Direct Gemini REST call (Vercel mode — no Python service needed). */
+async function callGeminiDirect(
+  prompt: string,
+  systemInstruction: string,
+  history: Turn[] | null
+): Promise<GeminiResult> {
+  const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
+  for (const t of history ?? []) {
+    const text = (t.text || "").trim();
+    if (text) contents.push({ role: t.role === "user" ? "user" : "model", parts: [{ text }] });
+  }
+  contents.push({ role: "user", parts: [{ text: prompt }] });
+  // Collapse consecutive same-role turns (Gemini expects alternation).
+  const cleaned: typeof contents = [];
+  for (const c of contents) {
+    if (cleaned.length && cleaned[cleaned.length - 1].role === c.role) {
+      cleaned[cleaned.length - 1].parts[0].text += "\n" + c.parts[0].text;
+    } else {
+      cleaned.push(c);
+    }
+  }
+  if (cleaned[0]?.role === "model") cleaned.shift();
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": GOOGLE_API_KEY,
+      },
+      body: JSON.stringify({
+        contents: cleaned,
+        ...(systemInstruction
+          ? { systemInstruction: { parts: [{ text: systemInstruction }] } }
+          : {}),
+      }),
+      signal: AbortSignal.timeout(60_000),
+    }
+  ).catch(() => null);
+
+  if (!res) return { ok: false, available: false, text: null, errorKind: null };
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    const kind =
+      res.status === 429
+        ? "quota"
+        : /api key not valid|unauthorized|permission/i.test(body)
+          ? "auth"
+          : "error";
+    return { ok: true, available: true, text: null, errorKind: kind };
+  }
+
+  const data = await res.json().catch(() => ({}));
+  const text: string | undefined =
+    data?.candidates?.[0]?.content?.parts
+      ?.map((p: { text?: string }) => p.text || "")
+      .join("");
+  return {
+    ok: true,
+    available: true,
+    text: text && text.trim() ? text.trim() : null,
+    errorKind: text ? null : "error",
+  };
+}
+
+/** Python-service transport (local / Docker / HuggingFace mode). */
+async function callGeminiViaService(
+  prompt: string,
+  systemInstruction: string,
+  history: Turn[] | null
+): Promise<GeminiResult> {
   const serviceRes = await fetch(`${GEMINI_SERVICE_URL}/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -128,6 +210,21 @@ async function callGeminiService(
   const errorKind =
     data && typeof data.error === "string" ? data.error : null;
   return { ok: true, available, text, errorKind };
+}
+
+function callGeminiService(
+  prompt: string,
+  systemInstruction: string,
+  history: Turn[] | null
+): Promise<GeminiResult> {
+  if (GEMINI_SERVICE_URL) return callGeminiViaService(prompt, systemInstruction, history);
+  if (GOOGLE_API_KEY) return callGeminiDirect(prompt, systemInstruction, history);
+  return Promise.resolve({
+    ok: true,
+    available: false,
+    text: null,
+    errorKind: null,
+  });
 }
 
 /** Compress turns older than the history window into a short summary. */
@@ -222,10 +319,12 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error: "gemini_service_unreachable",
-          reply:
-            "Leo AI can't reach the Gemini service right now. " +
-            "Please make sure the Python service is running (port 8000) and try again.",
+          error: "gemini_unreachable",
+          reply: GEMINI_SERVICE_URL
+            ? "Leo AI can't reach the Gemini service right now. " +
+              "Please make sure the Python service is running (port 8000) and try again."
+            : "Leo AI couldn't reach Google's Gemini API just now (network " +
+              "problem). Please try again in a moment.",
         },
         { status: 200 }
       );
