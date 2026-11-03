@@ -1,0 +1,289 @@
+/* ---------- FaceHero — interactive portrait intro ---------- */
+.face-hero {
+  --fh-purple: #a855f7;
+  --fh-purple-light: #c084fc;
+  position: relative;
+  height: 100svh;
+  min-height: 540px;
+  overflow: hidden;
+  background: #514e54;
+  color: #fff;
+  font-family: var(--font-bodoni), "Bodoni Moda", "Playfair Display", serif;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.face-hero.no-cursor,
+.face-hero.no-cursor * {
+  cursor: none;
+}
+
+.fh-bg-stack,
+.fh-shade,
+.fh-glow,
+.fh-waves {
+  position: absolute;
+  inset: 0;
+}
+.fh-bg-stack {
+  z-index: 2;
+}
+.fh-bg-stack img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: right center;
+  display: block;
+}
+.fh-bg-stack img.fh-gray {
+  filter: grayscale(100%) brightness(0.85) contrast(0.95);
+}
+.fh-bg-stack img.fh-color {
+  clip-path: circle(0px at 50% 50%);
+  will-change: clip-path;
+}
+.fh-shade {
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(
+    95deg,
+    rgba(8, 6, 11, 0.96) 0%,
+    rgba(10, 8, 14, 0.82) 34%,
+    rgba(12, 9, 17, 0.38) 58%,
+    rgba(14, 11, 19, 0) 78%
+  );
+}
+.fh-waves {
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Cinematic dissolve into the hero below. Two layers work together:
+   a broad linear fade to true black that reaches #000 exactly at the
+   section boundary (matching the hero's black top), softened by a
+   radial pool of darkness centred just below the boundary so the
+   corners keep a little texture while the middle sinks first. */
+.fh-fade {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      130% 60% at 50% 112%,
+      rgba(0, 0, 0, 0.92) 0%,
+      rgba(0, 0, 0, 0.5) 42%,
+      rgba(0, 0, 0, 0.12) 68%,
+      transparent 78%
+    ),
+    linear-gradient(
+      to bottom,
+      transparent 50%,
+      rgba(0, 0, 0, 0.28) 64%,
+      rgba(0, 0, 0, 0.62) 78%,
+      rgba(0, 0, 0, 0.92) 92%,
+      #000 100%
+    );
+}
+
+.fh-name {
+  position: absolute;
+  left: 7.5%;
+  top: 50%;
+  transform: translateY(-58%);
+  z-index: 10;
+  font-weight: 700;
+  font-size: clamp(2.4rem, 5.6vw, 5.2rem);
+  line-height: 1.04;
+  letter-spacing: 0.01em;
+  will-change: transform;
+  transition: color 300ms ease;
+}
+.fh-name .fh-first {
+  color: #ffffff;
+  display: block;
+}
+.fh-name .fh-last {
+  display: block;
+  background: linear-gradient(90deg, var(--fh-purple), var(--fh-purple-light));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.fh-rule {
+  margin-top: 34px;
+  width: 190px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--fh-purple), var(--fh-purple-light));
+  border: none;
+}
+
+/* Entrance choreography: lines rise out of a blur, then the rule draws
+   itself. Children stay hidden until .fh-in lands on the heading (added
+   by JS once the boot loader has revealed the page). */
+.fh-name .fh-first,
+.fh-name .fh-last {
+  opacity: 0;
+}
+.fh-rule {
+  transform-origin: left center;
+  transform: scaleX(0);
+  opacity: 0;
+}
+.fh-name.fh-in .fh-first {
+  animation: fh-rise 0.55s cubic-bezier(0.21, 0.65, 0.35, 1) 0s forwards;
+}
+.fh-name.fh-in .fh-last {
+  animation: fh-rise 0.55s cubic-bezier(0.21, 0.65, 0.35, 1) 0.12s forwards;
+}
+.fh-name.fh-in .fh-rule {
+  animation: fh-rule-in 0.4s cubic-bezier(0.21, 0.65, 0.35, 1) 0.22s forwards;
+}
+@keyframes fh-rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+@keyframes fh-rule-in {
+  from {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+.fh-hot {
+  color: var(--fh-purple-light) !important;
+}
+
+/* Rounded portrait shown only in the mobile composition */
+.fh-portrait {
+  display: none;
+}
+
+.fh-touch-hint {
+  position: absolute;
+  bottom: 40px;
+  right: 48px;
+  z-index: 10;
+  font-size: 0.8rem;
+  font-style: italic;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.55);
+  display: none;
+}
+.face-hero:has(.fh-waves) {
+  cursor: default;
+}
+@media (pointer: coarse) {
+  .face-hero .fh-touch-hint {
+    display: block;
+  }
+}
+
+@media (max-width: 900px) {
+  /* Mobile editorial cover: full-bleed colour portrait anchored right,
+     dark scrim for readability, "Leo / Joseph" on the left. */
+  .face-hero {
+    display: block;
+    background: #000;
+  }
+  .fh-bg-stack,
+  .fh-waves {
+    display: none;
+  }
+
+  .fh-portrait {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    margin: 0;
+    border-radius: 0;
+    overflow: hidden;
+    box-shadow: none;
+    z-index: 2;
+  }
+  .fh-portrait img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* Crop window shifted right in the source so the subject sits in the
+       right half but the full head — both ears included — stays inside
+       the viewport with breathing room from the right edge. */
+    object-position: 32% center;
+    display: block;
+  }
+  .fh-portrait img.fh-gray {
+    filter: grayscale(100%) brightness(0.9);
+  }
+
+  /* Scrim: darker on the left where the name sits, light overall
+     darkening so white text stays readable. */
+  .fh-shade {
+    display: block;
+    background:
+      linear-gradient(to bottom, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.3)),
+      linear-gradient(
+        92deg,
+        rgba(6, 5, 9, 0.84) 0%,
+        rgba(6, 5, 9, 0.52) 36%,
+        rgba(6, 5, 9, 0.1) 64%,
+        rgba(6, 5, 9, 0.32) 100%
+      );
+  }
+
+  /* Mobile: same headline as desktop over the portrait's left side;
+     the grayscale filter stays permanent — no reveal on touch. */
+  .fh-name {
+    position: absolute;
+    left: 8%;
+    top: 13.5%;
+    transform: none;
+    padding: 0;
+    font-size: clamp(2.5rem, 11vw, 5.2rem);
+    line-height: 1.04;
+  }
+  .fh-rule {
+    margin-top: 26px;
+    width: 150px;
+  }
+
+  /* Grayscale is permanent on mobile: hide the colour reveal layer and
+     the touch hint. */
+  .fh-portrait img.fh-color {
+    display: none;
+  }
+  .face-hero .fh-touch-hint {
+    display: none;
+  }
+
+  .fh-fade {
+    background: linear-gradient(
+      to bottom,
+      transparent 74%,
+      rgba(0, 0, 0, 0.55) 89%,
+      #000 100%
+    );
+  }
+  .fh-touch-hint {
+    bottom: 20px;
+    right: 20px;
+  }
+}

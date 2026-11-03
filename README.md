@@ -1,0 +1,85 @@
+---
+title: Leo404
+emoji: 👋
+colorFrom: purple
+colorTo: pink
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
+# Leo404 — AI Portfolio with Gemini Integration
+
+A Next.js portfolio website with an AI chatbot powered by the **official Google Gen AI Python SDK** (`from google import genai`).
+
+## Architecture
+
+```
+Leo404/
+├── app/                        # Next.js App Router (frontend + API routes)
+│   ├── api/chatbot/route.ts    # Calls the Python service over HTTP (no Gemini SDK here)
+│   └── ...
+├── components/                 # React UI components
+├── public/                     # Static assets (CV, images)
+├── lib/                        # Shared utilities
+├── gemini/                     # 🧠 The SINGLE integration layer for Gemini
+│   ├── gemini_service.py       # Lazy singleton client + generate_text()
+│   ├── app.py                  # Flask wrapper exposing /generate and /health
+│   └── requirements.txt        # google-genai>=1.0.0, Flask, gunicorn
+├── Dockerfile                  # HuggingFace Spaces (Node + Python)
+├── start.sh                    # Launches both processes
+├── .env.example                # Documents GOOGLE_API_KEY
+└── package.json
+```
+
+### Gemini integration rules (enforced)
+
+- **Official SDK only:** `from google import genai` (never the deprecated `google.generativeai`).
+- **One integration layer:** `gemini/gemini_service.py` is the *only* file that talks to Gemini. No route, utility, or controller calls Gemini directly.
+- **Lazy singleton client:** the `genai.Client` is created once on first use and reused.
+- **API key from env only:** `GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")`. Never hardcoded, logged, or returned.
+- **Graceful failures:** `generate_text()` returns `None` on any error (missing key, quota, timeout, network) — the app never crashes.
+- **Single model variable:** `MODEL_NAME = "gemini-2.5-flash"`.
+
+## Local development
+
+```bash
+# 1. Install Node dependencies
+npm install
+
+# 2. Install Python dependencies
+pip install -r gemini/requirements.txt
+
+# 3. Set your API key (never commit this file)
+cp .env.example .env
+#   then edit .env and set GOOGLE_API_KEY=...
+
+# 4. Start the Python Gemini service (port 8000)
+cd gemini && python app.py &
+cd ..
+
+# 5. Start the Next.js dev server (port 3000)
+npm run dev
+```
+
+Open <http://localhost:3000>.
+
+## HuggingFace Spaces deployment
+
+1. Create a new **Docker** Space on HuggingFace.
+2. Push this repository to the Space's Git repo.
+3. Under **Settings → Secrets**, add:
+   - `GOOGLE_API_KEY` = your Gemini API key
+4. The Space builds automatically and serves on port `7860`.
+
+The API key is injected at runtime — it is **never** in the Dockerfile, never committed, and never logged.
+
+## Environment variables
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `GOOGLE_API_KEY` | yes | — | Google Gemini API key (env only) |
+| `GEMINI_MODEL` | no | `gemini-2.5-flash` | Model name |
+| `GEMINI_SERVICE_URL` | no | `http://localhost:8000` | Python service URL (used by Next.js) |
+| `GEMINI_SERVICE_PORT` | no | `8000` | Python service port |
+| `PORT` | no | `7860` | Next.js port (HuggingFace default) |
